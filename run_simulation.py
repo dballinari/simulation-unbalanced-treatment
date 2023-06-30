@@ -32,13 +32,22 @@ def plot_bias_distribution(bias: np.ndarray, ax: plt.Axes, title: str):
     ax.axvline(mean_bias/std_bias, color='k', linestyle='dashed', linewidth=1)
     ax.set_title(title)
 
+def evaluate_estimation(ate: np.ndarray, ate_true: float) -> dict:
+    bias = ate - ate_true
+    return {
+        'mean_bias': np.nanmean(bias),
+        'rmse': np.nanstd(bias),
+        'mae': np.nanmean(np.abs(bias)),
+        'std_estimate': np.nanstd(ate),
+    }
+
 
 if __name__=='__main__':
     # set seed
     np.random.seed(args.seed)
-    bias_ate = np.zeros(args.num_simulations)
-    bias_ate_under = np.zeros(args.num_simulations)
-    bias_ate_under_all = np.zeros(args.num_simulations)
+    estimates_ate = np.zeros(args.num_simulations)
+    estimates_ate_under = np.zeros(args.num_simulations)
+    estimates_ate_under_all = np.zeros(args.num_simulations)
     proportion_treated = np.zeros(args.num_simulations)
     # add progress bar
     progress_bar = tqdm(total=args.num_simulations)
@@ -54,20 +63,17 @@ if __name__=='__main__':
         # estimate ATE with under sampling both training and test data
         ate_under_all = estimate_ate(y, w, x, under_sample_train=True, under_sample_test=True, n_estimators=args.n_estimators, random_state=args.seed, n_jobs=args.n_jobs)
         # compute biases
-        bias_ate[i] = ate - args.true_ate
-        bias_ate_under[i] = ate_under - args.true_ate
-        bias_ate_under_all[i] = ate_under_all - args.true_ate
+        estimates_ate[i] = ate
+        estimates_ate_under[i] = ate_under
+        estimates_ate_under_all[i] = ate_under_all
         # update progress bar
         progress_bar.update(1)
     # close progress bar
     progress_bar.close()
     # compute summary statistics of biases removing nan
-    mean_bias_ate = np.nanmean(bias_ate)
-    mean_bias_ate_under = np.nanmean(bias_ate_under)
-    mean_bias_ate_under_all = np.nanmean(bias_ate_under_all)
-    std_bias_ate = np.nanstd(bias_ate)
-    std_bias_ate_under = np.nanstd(bias_ate_under)
-    std_bias_ate_under_all = np.nanstd(bias_ate_under_all)
+    stats_ate = evaluate_estimation(estimates_ate, args.true_ate)
+    stats_ate_under = evaluate_estimation(estimates_ate_under, args.true_ate)
+    stats_ate_under_all = evaluate_estimation(estimates_ate_under_all, args.true_ate)
     mean_proportion_treated = np.mean(proportion_treated)
     std_proportion_treated = np.std(proportion_treated)
     # ensure that the results folder exists
@@ -75,12 +81,9 @@ if __name__=='__main__':
     # dump summary statistics of biases to json
     with open(f'results/bias_ate_{args.num_simulations}_{args.n}_{args.p}_{args.alpha}_{args.beta}_{args.gamma}_{args.true_ate}_{args.n_estimators}_{args.seed}.json', 'w') as f:
         json.dump({
-            'mean_bias_ate': mean_bias_ate, 
-            'mean_bias_ate_under': mean_bias_ate_under, 
-            'mean_bias_ate_under_all': mean_bias_ate_under_all, 
-            'std_bias_ate': std_bias_ate, 
-            'std_bias_ate_under': std_bias_ate_under, 
-            'std_bias_ate_under_all': std_bias_ate_under_all,
+            'stats_ate': stats_ate, 
+            'stats_ate_under': stats_ate_under, 
+            'stats_ate_under_all': stats_ate_under_all,
             'mean_proportion_treated': mean_proportion_treated,
             'std_proportion_treated': std_proportion_treated,
             }, f, indent=4)
