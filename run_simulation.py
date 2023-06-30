@@ -1,11 +1,14 @@
 from simulation.dgps import sim_outcomes
 from simulation.estimator import estimate_ate
+
 import argparse
 import numpy as np
 from tqdm import tqdm
 import json
+import os
 import matplotlib.pyplot as plt
 
+# parse arguments
 argparser = argparse.ArgumentParser()
 argparser.add_argument('--num_simulations', type=int, default=100)
 argparser.add_argument('--n', type=int, default=1000)
@@ -67,6 +70,8 @@ if __name__=='__main__':
     std_bias_ate_under_all = np.nanstd(bias_ate_under_all)
     mean_proportion_treated = np.mean(proportion_treated)
     std_proportion_treated = np.std(proportion_treated)
+    # ensure that the results folder exists
+    os.makedirs('results', exist_ok=True)
     # dump summary statistics of biases to json
     with open(f'results/bias_ate_{args.num_simulations}_{args.n}_{args.p}_{args.alpha}_{args.beta}_{args.gamma}_{args.true_ate}_{args.n_estimators}_{args.seed}.json', 'w') as f:
         json.dump({
