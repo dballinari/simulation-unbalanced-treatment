@@ -50,9 +50,14 @@ def estimate_ate(y: np.ndarray, w: np.ndarray, x: np.ndarray, under_sample_train
     y_pred_not_treated = regression_prediction(x_train[w_train==0,:], y_train[w_train==0], x_test, **kwargs)
     # predict treatment probabilities
     w_pred = classification_prediction(x_train, w_train, x_test)
-    # correct predicted probabilities for under-sampling (Dal Pozzolo et al., 2015)
-    if not under_sample_test:
-        w_pred = ratio_treated*w_pred/(ratio_treated*w_pred - w_pred + 1)
+    # correct predicted probabilities for under-sampling (Dal Pozzolo et al., 2015) assuming prior treatment probability are the same in train and test
+    if under_sample_train and not under_sample_test:
+        if ratio_treated < 1:
+            # correct for under-sampling of the treated
+            w_pred = ratio_treated*w_pred/(ratio_treated*w_pred - w_pred + 1)
+        else:
+            # correct for under-sampling of the non-treated
+            w_pred = w_pred/((1-w_pred)/ratio_treated - w_pred)
     # estimate ATE using doubly robust estimator
     ate = np.mean(y_pred_treated-y_pred_not_treated + w_test*(y_test-y_pred_treated)/(w_pred+1e-10) + (1-w_test)*(y_test-y_pred_not_treated)/(1-w_pred+1e-10))
     return ate
