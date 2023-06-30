@@ -29,10 +29,10 @@ def estimate_ate(y: np.ndarray, w: np.ndarray, x: np.ndarray, under_sample_train
     w_train = w[:n_train]
     y_test = y[n_train:]
     w_test = w[n_train:]
-    # store number of treated and non-treated in train sample
-    n_treated = np.sum(w_train)
-    n_not_treated = n_train - n_treated
-    ratio_treated = n_treated/n_not_treated
+    # store number of treated and non-treated in test sample
+    n_treated_test = np.sum(w_test)
+    n_not_treated_test = np.sum(1-w_test)
+    ratio_treated_test = n_treated_test/n_not_treated_test
 
     # if train and/or test sample have no treated or no non-treated, return nan
     if (np.sum(w_train==1)==0) or (np.sum(w_train==0)==0) or (np.sum(w_test==1)==0) or (np.sum(w_test==0)==0):
@@ -50,9 +50,15 @@ def estimate_ate(y: np.ndarray, w: np.ndarray, x: np.ndarray, under_sample_train
     y_pred_not_treated = regression_prediction(x_train[w_train==0,:], y_train[w_train==0], x_test, **kwargs)
     # predict treatment probabilities
     w_pred = classification_prediction(x_train, w_train, x_test)
-    # correct predicted probabilities for under-sampling (Dal Pozzolo et al., 2015)
-    if not under_sample_test:
-        w_pred = ratio_treated*w_pred/(ratio_treated*w_pred - w_pred + 1)
+    # correct predicted probabilities for under-sampling (Dal Pozzolo et al., 2015) assuming prior treatment probability are the same in train and test
+    # not that in practice we would use the treatment/non-treatment ratio computed on the train set, but for comparability with the full under-sampling approach we use the ratio in the test set
+    if under_sample_train and not under_sample_test:
+        if ratio_treated_test < 1:
+            # correct for under-sampling of the treated
+            w_pred = ratio_treated_test*w_pred/(ratio_treated_test*w_pred - w_pred + 1)
+        else:
+            # correct for under-sampling of the non-treated
+            w_pred = w_pred/((1-w_pred)/ratio_treated_test - w_pred)
     # estimate ATE using doubly robust estimator
     ate = np.mean(y_pred_treated-y_pred_not_treated + w_test*(y_test-y_pred_treated)/(w_pred+1e-10) + (1-w_test)*(y_test-y_pred_not_treated)/(1-w_pred+1e-10))
     return ate
