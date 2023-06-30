@@ -18,11 +18,12 @@ args = argparser.parse_args()
 
 
 if __name__=='__main__':
-    ate_list = []
+    # set seed
+    np.random.seed(args.seed)
     ate_array = np.zeros(args.num_simulations)
     for i in range(args.num_simulations):
         # simulate data
-        x, w, y = sim_outcomes(n=args.n, p=args.p, alpha=args.alpha, beta=args.beta, gamma=args.gamma, true_ate=args.true_ate, seed=args.seed)
+        x, w, y = sim_outcomes(n=args.n, p=args.p, alpha=args.alpha, beta=args.beta, gamma=args.gamma, true_ate=args.true_ate)
         # estimate ATE
         ate = estimate_ate(y, w, x, n_estimators=args.n_estimators, random_state=args.seed)
         ate_array[i] = ate

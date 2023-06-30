@@ -7,11 +7,9 @@ from typing import Tuple
 # Define constants
 MIN_COVARIATES = 5
 
-def sim_outcomes(n: int, p: int, alpha: float, beta: int, gamma: int, true_ate: float, seed: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def sim_outcomes(n: int, p: int, alpha: float, beta: int, gamma: int, true_ate: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     if p < MIN_COVARIATES:
         raise ValueError(f"Number of covariates must be at least {MIN_COVARIATES}")
-    # set seed
-    np.random.seed(seed)
     # simulate nxp covariates from a uniform distribution
     x = _sim_covariates(n, p)
     # simulate treatment assignment
