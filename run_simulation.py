@@ -32,6 +32,15 @@ def plot_bias_distribution(bias: np.ndarray, ax: plt.Axes, title: str):
     ax.axvline(mean_bias/std_bias, color='k', linestyle='dashed', linewidth=1)
     ax.set_title(title)
 
+def evaluate_estimation(ate: np.ndarray, ate_true: float) -> dict:
+    bias = ate - ate_true
+    return {
+        'mean_bias': np.nanmean(bias),
+        'rmse': np.nanstd(bias),
+        'mae': np.nanmean(np.abs(bias)),
+        'std_ate': np.nanstd(ate),
+    }
+
 
 if __name__=='__main__':
     # set seed
