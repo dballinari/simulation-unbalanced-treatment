@@ -90,8 +90,8 @@ if __name__=='__main__':
     # plot of standardized biases in one figure
     x = np.linspace(-5, 5, 100)
     fig, ax = plt.subplots(ncols=3)
-    plot_bias_distribution(bias_ate, ax[0], 'ATE')
-    plot_bias_distribution(bias_ate_under, ax[1], 'ATE under')
-    plot_bias_distribution(bias_ate_under_all, ax[2], 'ATE under all')
+    plot_bias_distribution(estimates_ate-args.true_ate, ax[0], 'ATE')
+    plot_bias_distribution(estimates_ate_under-args.true_ate, ax[1], 'ATE under')
+    plot_bias_distribution(estimates_ate_under_all-args.true_ate, ax[2], 'ATE under all')
     # save figure to result folder
     fig.savefig(f'results/bias_ate_{args.num_simulations}_{args.n}_{args.p}_{args.alpha}_{args.beta}_{args.gamma}_{args.true_ate}_{args.n_estimators}_{args.seed}.png')
