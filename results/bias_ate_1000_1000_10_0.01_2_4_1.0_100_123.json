@@ -1,0 +1,10 @@
+{
+    "mean_bias_ate": 553394.2600581233,
+    "mean_bias_ate_under": -9572.818522689799,
+    "mean_bias_ate_under_all": 0.04418414723869449,
+    "std_bias_ate": 81601329.71778929,
+    "std_bias_ate_under": 301962.98578766536,
+    "std_bias_ate_under_all": 1.4460412827947913,
+    "mean_proportion_treated": 0.012408,
+    "std_proportion_treated": 0.0036229181608200866
+}
