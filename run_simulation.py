@@ -57,11 +57,11 @@ if __name__=='__main__':
         # save proportion of treated
         proportion_treated[i] = np.mean(w)
         # estimate ATE
-        ate = estimate_ate(y, w, x, n_estimators=args.n_estimators, random_state=args.seed, n_jobs=args.n_jobs)
+        ate, policy = estimate_ate(y, w, x, n_estimators=args.n_estimators, random_state=args.seed, n_jobs=args.n_jobs)
         # estimate ATE with under sampling only training data
-        ate_under = estimate_ate(y, w, x, under_sample_train=True, n_estimators=args.n_estimators, random_state=args.seed, n_jobs=args.n_jobs)
+        ate_under, policy_under = estimate_ate(y, w, x, under_sample_train=True, n_estimators=args.n_estimators, random_state=args.seed, n_jobs=args.n_jobs)
         # estimate ATE with under sampling both training and test data
-        ate_under_all = estimate_ate(y, w, x, under_sample_train=True, under_sample_test=True, n_estimators=args.n_estimators, random_state=args.seed, n_jobs=args.n_jobs)
+        ate_under_all, policy_under_all = estimate_ate(y, w, x, under_sample_train=True, under_sample_test=True, n_estimators=args.n_estimators, random_state=args.seed, n_jobs=args.n_jobs)
         # compute biases
         estimates_ate[i] = ate
         estimates_ate_under[i] = ate_under
