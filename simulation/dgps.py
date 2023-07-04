@@ -38,8 +38,8 @@ def _outcomes_not_treated(x: np.ndarray) -> np.ndarray:
     return mu
 
 def _outcomes_treated(x: np.ndarray, true_ate: float) -> np.ndarray:
-    tau = np.sin(x[:,0]*np.pi) * np.pi/2 # in expectation equal to 1
-    mu = true_ate*tau + _outcomes_not_treated(x) + np.random.normal(size=x.shape[0])
+    tau = np.cos(x[:,0]*np.pi) + np.sin(x[:,1]*np.pi) # in expectation equal to 2/pi
+    mu = true_ate*np.pi/2*tau + _outcomes_not_treated(x) + np.random.normal(size=x.shape[0])
     return mu
 
 def _sim_treatment_assignment(x: np.ndarray, alpha: float, beta: int, gamma: int) -> np.ndarray:
