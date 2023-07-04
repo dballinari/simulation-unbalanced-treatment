@@ -20,15 +20,22 @@ def classification_prediction(x_train: np.ndarray, w_train: np.ndarray, x_test: 
     return w_pred
 
 def estimate_ate(y: np.ndarray, w: np.ndarray, x: np.ndarray, under_sample_train: bool=False, under_sample_test: bool=False, **kwargs) -> float:
+    np.random.shuffle(x)
     # split sample into train and test
     n = x.shape[0]
-    n_train = int(n*0.5)
+    n_train = int(n/3)
+    n_test = int(n/3)
+    # train sample
     x_train = x[:n_train,:]
-    x_test = x[n_train:,:]
     y_train = y[:n_train]
     w_train = w[:n_train]
-    y_test = y[n_train:]
-    w_test = w[n_train:]
+    # test sample
+    x_test = x[n_train:(n_train+n_test),:]
+    y_test = y[n_train:(n_train+n_test)]
+    w_test = w[n_train:(n_train+n_test)]
+    # policy sample
+    x_policy = x[(n_train+n_test):,:]
+
     # store number of treated and non-treated in test sample
     n_treated_test = np.sum(w_test)
     n_not_treated_test = np.sum(1-w_test)
@@ -49,7 +56,7 @@ def estimate_ate(y: np.ndarray, w: np.ndarray, x: np.ndarray, under_sample_train
     # predict outcomes using data on the non-treated
     y_pred_not_treated = regression_prediction(x_train[w_train==0,:], y_train[w_train==0], x_test, **kwargs)
     # predict treatment probabilities
-    w_pred = classification_prediction(x_train, w_train, x_test)
+    w_pred = classification_prediction(x_train, w_train, x_test, **kwargs)
     # correct predicted probabilities for under-sampling (Dal Pozzolo et al., 2015) assuming prior treatment probability are the same in train and test
     # not that in practice we would use the treatment/non-treatment ratio computed on the train set, but for comparability with the full under-sampling approach we use the ratio in the test set
     if under_sample_train and not under_sample_test:
@@ -59,9 +66,13 @@ def estimate_ate(y: np.ndarray, w: np.ndarray, x: np.ndarray, under_sample_train
         else:
             # correct for under-sampling of the non-treated
             w_pred = w_pred/((1-w_pred)/ratio_treated_test - w_pred)
+    # compute pseudo-outcomes on test set
+    tau = y_pred_treated-y_pred_not_treated + w_test*(y_test-y_pred_treated)/(w_pred+1e-10) + (1-w_test)*(y_test-y_pred_not_treated)/(1-w_pred+1e-10)
     # estimate ATE using doubly robust estimator
-    ate = np.mean(y_pred_treated-y_pred_not_treated + w_test*(y_test-y_pred_treated)/(w_pred+1e-10) + (1-w_test)*(y_test-y_pred_not_treated)/(1-w_pred+1e-10))
-    return ate
+    ate = np.mean(tau)
+    # compute optimal policy
+    w_opt = _compute_optimal_policy(tau, x_test, x_policy, **kwargs)
+    return ate, w_opt
 
 
 def _under_sample_majority_treatment(y: np.ndarray, w: np.ndarray, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -83,3 +94,17 @@ def _under_sample_majority_treatment(y: np.ndarray, w: np.ndarray, x: np.ndarray
     y = y[idx]
     w = w[idx]
     return y, w, x
+
+
+def _compute_optimal_policy(pseudo_outcome: np.ndarray, x_test: np.ndarray, x_policy: np.ndarray, **kwargs) -> np.ndarray:
+    # define classification target:
+    # 1 if pseudo-outcome is positive, 0 otherwise
+    pseudo_outcome_sign = pseudo_outcome > 0
+    # define weights for random forest classification
+    weight = np.abs(pseudo_outcome)
+    # fit random forest classification
+    model = RandomForestClassifier(**kwargs)
+    model.fit(x_test, pseudo_outcome_sign, sample_weight=weight)
+    # predict optimal policy
+    w_opt = model.predict(x_policy)
+    return w_opt
