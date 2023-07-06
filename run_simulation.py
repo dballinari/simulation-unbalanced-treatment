@@ -29,7 +29,7 @@ def plot_estimator_distribution(estimator: np.ndarray, true_value: float, ax: pl
     std_estimator = np.nanstd(estimator)
     x = np.linspace(-5*std_estimator + mean_estimator, 5*std_estimator + mean_estimator, 100)
     ax.hist(estimator, bins=50, alpha=0.5, density=True)
-    ax.plot(x, 1/np.sqrt(2*np.pi)*np.exp(-x**2/2), 'r--', label='N(0,1)')
+    ax.plot(x, 1/np.sqrt(2*np.pi*std_estimator)*np.exp(-((x-mean_estimator)/2)**2/2), 'r--')
     ax.axvline(true_value, color='k', linestyle='dashed', linewidth=1)
     ax.set_title(title)
 
@@ -112,7 +112,7 @@ if __name__=='__main__':
             'std_proportion_treated': std_proportion_treated,
             }, f, indent=4)
     # plot of standardized biases in one figure
-    fig, ax = plt.subplots(ncols=4)
+    fig, ax = plt.subplots(ncols=3)
     plot_estimator_distribution(estimates_ate, args.true_ate, ax[0], 'ATE')
     plot_estimator_distribution(estimates_ate_under, args.true_ate, ax[1], 'ATE under')
     plot_estimator_distribution(estimates_ate_under_all, args.true_ate, ax[2], 'ATE under all')
