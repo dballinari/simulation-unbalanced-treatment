@@ -1,4 +1,4 @@
-from simulation.dgps import sim_outcomes, sim_covariates
+from simulation.dgps import sim_outcomes, sim_covariates, propensity_scores
 from simulation.estimator import estimate_ate
 
 import argparse
@@ -61,11 +61,20 @@ if __name__=='__main__':
     regrets_under = np.zeros(args.num_simulations)
     regrets_under_all = np.zeros(args.num_simulations)
     proportion_treated = np.zeros(args.num_simulations)
+    # define export file names
+    file_name = f'{args.num_simulations}_{args.n}_{args.n_policy}_{args.p}_{args.alpha}_{args.beta}_{args.gamma}_{args.true_ate}{"_inverseDependence" if args.invert_dependence else ""}_{args.n_estimators}_{args.seed}'
     # add progress bar
     progress_bar = tqdm(total=args.num_simulations)
     for i in range(args.num_simulations):
         # simulate data
         x, w, y = sim_outcomes(n=args.n, p=args.p, alpha=args.alpha, beta=args.beta, gamma=args.gamma, true_ate=args.true_ate, invert_dependence=args.invert_dependence)
+        # in the first simulation, plot the propensity scores
+        if i == 0:
+            ps = propensity_scores(x, args.alpha, args.beta, args.gamma)
+            fig, ax = plt.subplots()
+            ax.hist(ps, bins=50, alpha=0.5, density=True)
+            ax.set_title('Propensity scores')
+            fig.savefig(f'results/propensity_scores_{file_name}.png')
         # simulate data for policy
         x_policy = sim_covariates(n=args.n_policy, p=args.p)
         # save proportion of treated
@@ -100,8 +109,6 @@ if __name__=='__main__':
     std_proportion_treated = np.std(proportion_treated)
     # ensure that the results folder exists
     os.makedirs('results', exist_ok=True)
-    # define export file names
-    file_name = f'{args.num_simulations}_{args.n}_{args.n_policy}_{args.p}_{args.alpha}_{args.beta}_{args.gamma}_{args.true_ate}{"_inverseDependence" if args.invert_dependence else ""}_{args.n_estimators}_{args.seed}'
     # dump summary statistics of biases to json
     with open(f'results/ate_policy_{file_name}.json', 'w') as f:
         json.dump({

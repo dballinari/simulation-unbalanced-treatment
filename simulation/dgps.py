@@ -5,7 +5,7 @@ from typing import Tuple
 # Definition of DGPs as in the paper Okasa (2022) [https://arxiv.org/abs/2201.12692] with constant ATE
 
 # Define constants
-MIN_COVARIATES = 10
+MIN_COVARIATES = 5
 
 def sim_outcomes(n: int, p: int, alpha: float, beta: int, gamma: int, true_ate: float, invert_dependence: bool=False) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     if p < MIN_COVARIATES:
@@ -21,7 +21,7 @@ def sim_outcomes(n: int, p: int, alpha: float, beta: int, gamma: int, true_ate: 
     y = y0*(1-w) + y1*w
     return x, w, y
 
-def _propensity_scores(x: np.ndarray, alpha: float, beta: int, gamma: int) -> np.ndarray:
+def propensity_scores(x: np.ndarray, alpha: float, beta: int, gamma: int) -> np.ndarray:
     # define sinus function of the product of the first 4 covariates
     f = np.sin(np.prod(x[:,:4], axis=1)*np.pi)
     # propensity scores as beta distribution at f
@@ -48,7 +48,7 @@ def outcomes_treated(x: np.ndarray, true_ate: float, invert_dependence: bool=Fal
 
 def _sim_treatment_assignment(x: np.ndarray, alpha: float, beta: int, gamma: int) -> np.ndarray:
     # simulate treatment assignment
-    ps = _propensity_scores(x, alpha, beta, gamma)
+    ps = propensity_scores(x, alpha, beta, gamma)
     # treatment assignment as bernoulli distribution at ps
     w = np.random.binomial(1, ps)
     return w
