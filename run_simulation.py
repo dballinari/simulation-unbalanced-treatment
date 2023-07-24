@@ -29,7 +29,7 @@ def plot_estimator_distribution(estimator: np.ndarray, true_value: float, ax: pl
     std_estimator = np.nanstd(estimator)
     x = np.linspace(-5*std_estimator + mean_estimator, 5*std_estimator + mean_estimator, 100)
     ax.hist(estimator, bins=50, alpha=0.5, density=True)
-    ax.plot(x, 1/np.sqrt(2*np.pi*std_estimator)*np.exp(-((x-mean_estimator)/2)**2/2), 'r--')
+    ax.plot(x, 1/np.sqrt(2*np.pi*std_estimator)*np.exp(-((x-mean_estimator)/std_estimator)**2/2), 'r--')
     ax.axvline(true_value, color='k', linestyle='dashed', linewidth=1)
     ax.set_title(title)
 
