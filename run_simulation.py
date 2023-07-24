@@ -18,7 +18,7 @@ argparser.add_argument('--alpha', type=float, default=1/4)
 argparser.add_argument('--beta', type=int, default=2)
 argparser.add_argument('--gamma', type=int, default=4)
 argparser.add_argument('--true_ate', type=float, default=1.0)
-argparser.add_argument('--invert_dependence', action=argparse.BooleanOptionalAction)
+argparser.add_argument('--independent_effect', action=argparse.BooleanOptionalAction)
 argparser.add_argument('--n_estimators', type=int, default=100)
 argparser.add_argument('--seed', type=int, default=123)
 argparser.add_argument('--n_jobs', type=int, default=None)
@@ -62,17 +62,18 @@ if __name__=='__main__':
     regrets_under_all = np.zeros(args.num_simulations)
     proportion_treated = np.zeros(args.num_simulations)
     # define export file names
-    file_name = f'{args.num_simulations}_{args.n}_{args.n_policy}_{args.p}_{args.alpha}_{args.beta}_{args.gamma}_{args.true_ate}{"_inverseDependence" if args.invert_dependence else ""}_{args.n_estimators}_{args.seed}'
+    file_name = f'{args.num_simulations}_{args.n}_{args.n_policy}_{args.p}_{args.alpha}_{args.beta}_{args.gamma}_{args.true_ate}{"_independentEffect" if args.independent_effect else ""}_{args.n_estimators}_{args.seed}'
     # add progress bar
     progress_bar = tqdm(total=args.num_simulations)
     for i in range(args.num_simulations):
         # simulate data
-        x, w, y = sim_outcomes(n=args.n, p=args.p, alpha=args.alpha, beta=args.beta, gamma=args.gamma, true_ate=args.true_ate, invert_dependence=args.invert_dependence)
+        x, w, y = sim_outcomes(n=args.n, p=args.p, alpha=args.alpha, beta=args.beta, gamma=args.gamma, true_ate=args.true_ate, independent=args.independent_effect)
         # in the first simulation, plot the propensity scores
         if i == 0:
             ps = propensity_scores(x, args.alpha, args.beta, args.gamma)
             fig, ax = plt.subplots()
-            ax.hist(ps, bins=50, alpha=0.5, density=True)
+            ax.hist(ps, bins=20, alpha=0.5, density=False)
+            ax.grid()
             ax.set_title('Propensity scores')
             fig.savefig(f'results/propensity_scores_{file_name}.png')
         # simulate data for policy
