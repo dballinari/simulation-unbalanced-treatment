@@ -31,7 +31,7 @@ def estimate_ate(y: np.ndarray, w: np.ndarray, x: np.ndarray, x_policy: np.ndarr
     # estimate ATE using doubly robust estimator
     ate = np.mean(tau)
     # compute optimal policy and its regret
-    w_opt = _compute_optimal_policy(tau, x, x_policy, **kwargs)
+    w_opt = _compute_optimal_policy(tau-true_ate, x, x_policy, **kwargs) # use the true ATE as the cost for implementing the policy
     regret = _compute_regret(w_opt,x_policy, true_ate)
     return ate, regret
 
@@ -122,7 +122,7 @@ def _compute_regret(w_opt: np.ndarray, x_policy: np.ndarray, true_ate: bool) -> 
     y_treated = outcomes_treated(x_policy, true_ate)
     y_not_treated = outcomes_not_treated(x_policy)
     # determine oracle policy (i.e. policy that maximizes the expected outcome)
-    w_oracle = y_treated > y_not_treated
+    w_oracle = y_treated - y_not_treated > true_ate # treat only if individual CATE is larger than true ATE
     # define outcome based on policy
     y_policy = y_treated*w_opt + y_not_treated*(1-w_opt)
     y_oracle = y_treated*w_oracle + y_not_treated*(1-w_oracle)

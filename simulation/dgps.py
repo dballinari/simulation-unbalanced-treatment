@@ -7,7 +7,7 @@ from typing import Tuple
 # Define constants
 MIN_COVARIATES = 6
 
-def sim_outcomes(n: int, p: int, alpha: float, beta: int, gamma: int, true_ate: float, independent: bool=False) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def sim_outcomes(n: int, p: int, alpha: float, beta: int, gamma: int, true_ate: float, cate_type: str='constant') -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     if p < MIN_COVARIATES:
         raise ValueError(f"Number of covariates must be at least {MIN_COVARIATES}")
     # simulate nxp covariates from a uniform distribution
@@ -16,7 +16,7 @@ def sim_outcomes(n: int, p: int, alpha: float, beta: int, gamma: int, true_ate: 
     w = _sim_treatment_assignment(x, alpha, beta, gamma)
     # simulate outcomes
     y0 = outcomes_not_treated(x)
-    y1 = outcomes_treated(x, true_ate, independent)
+    y1 = outcomes_treated(x, true_ate, cate_type)
     # observed outcomes
     y = y0*(1-w) + y1*w
     return x, w, y
@@ -34,17 +34,28 @@ def sim_covariates(n: int, p: int) -> np.ndarray:
     return x
 
 def outcomes_not_treated(x: np.ndarray) -> np.ndarray:
-    mu = np.sin(np.prod(x[:,:2], axis=1)*np.pi) + 2*(x[:,3]-0.5)**2 + 0.5*x[:,4] + np.random.normal(size=x.shape[0])
+    mu = _base_outcomes(x) + np.random.normal(size=x.shape[0])
     return mu
 
-def outcomes_treated(x: np.ndarray, true_ate: float, independent: bool=False) -> np.ndarray:
-    # define individual effect either independent or dependent on same covariates as the propensity score
-    if independent:
-        tau = np.cos(x[:,4]*np.pi) + np.sin(x[:,5]*np.pi) # in expectation equal to 2/pi
-    else:
-        tau = np.cos(x[:,0]*np.pi) + np.sin(x[:,1]*np.pi) # in expectation equal to 2/pi
-    mu = true_ate*np.pi/2*tau + outcomes_not_treated(x) + np.random.normal(size=x.shape[0])
+def outcomes_treated(x: np.ndarray, true_ate: float, cate_type: str='constant') -> np.ndarray:
+    tau = _cate(x, cate_type)
+    mu = true_ate*tau + _base_outcomes(x) + np.random.normal(size=x.shape[0])
     return mu
+
+def _base_outcomes(x: np.ndarray) -> np.ndarray:
+    return np.sin(np.prod(x[:,:2], axis=1)*np.pi) + 2*(x[:,3]-0.5)**2 + 0.5*x[:,4] 
+
+def _cate(x: np.ndarray, type: str) -> np.ndarray:
+    # returns CATE with expected value equal to 1
+    match type:
+        case 'complex':
+            return (1 + (1/(1+np.exp(-20*(x[:,0]-0.5))) - 0.5))*(1 + (1/(1+np.exp(-20*(x[:,1]-0.5))) - 0.5)) # as in the paper https://arxiv.org/abs/1510.04342
+        case 'sine':
+            return (np.cos(x[:,0]*np.pi) + np.sin(x[:,1]*np.pi))*np.pi/2 # in expectation equal to 2/pi
+        case 'constant':
+            return 1
+        case other:
+            raise ValueError(f"CATE type {type} not recognized")
 
 def _sim_treatment_assignment(x: np.ndarray, alpha: float, beta: int, gamma: int) -> np.ndarray:
     # simulate treatment assignment
