@@ -47,15 +47,16 @@ def _base_outcomes(x: np.ndarray) -> np.ndarray:
 
 def _cate(x: np.ndarray, type: str) -> np.ndarray:
     # returns CATE with expected value equal to 1
-    match type:
-        case 'complex':
-            return (1 + (1/(1+np.exp(-20*(x[:,0]-0.5))) - 0.5))*(1 + (1/(1+np.exp(-20*(x[:,1]-0.5))) - 0.5)) # as in the paper https://arxiv.org/abs/1510.04342
-        case 'sine':
-            return (np.cos(x[:,0]*np.pi) + np.sin(x[:,1]*np.pi))*np.pi/2 # in expectation equal to 2/pi
-        case 'constant':
-            return 1
-        case other:
-            raise ValueError(f"CATE type {type} not recognized")
+    cates = {
+        'complex': (1 + (1/(1+np.exp(-20*(x[:,0]-0.5))) - 0.5))*(1 + (1/(1+np.exp(-20*(x[:,1]-0.5))) - 0.5)), # as in the paper https://arxiv.org/abs/1510.04342
+        'sine': (np.cos(x[:,0]*np.pi) + np.sin(x[:,1]*np.pi))*np.pi/2, # in expectation equal to 2/pi
+        'constant': 1,
+    }
+    if type not in cates.keys():
+        raise ValueError(f"CATE type {type} not recognized")
+    return cates[type]
+            
+            
 
 def _sim_treatment_assignment(x: np.ndarray, alpha: float, beta: int, gamma: int) -> np.ndarray:
     # simulate treatment assignment

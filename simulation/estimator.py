@@ -22,7 +22,8 @@ def classification_prediction(x_train: np.ndarray, w_train: np.ndarray, x_test: 
     w_pred = model.predict_proba(x_test)[:,1]
     return w_pred
 
-def estimate_ate(y: np.ndarray, w: np.ndarray, x: np.ndarray, x_policy: np.ndarray, true_ate: float, nfolds: int=2, under_sample_train: bool=False, under_sample_test: bool=False, **kwargs) -> float:
+def estimate_ate(y: np.ndarray, w: np.ndarray, x: np.ndarray, x_policy: np.ndarray, true_ate: float, cate_type: str, 
+                 nfolds: int=2, under_sample_train: bool=False, under_sample_test: bool=False, **kwargs) -> float:
     # if both train and test sets are under-sampled, under-sample the entire dataset
     if under_sample_train and under_sample_test:
         y, w, x = _under_sample_majority_treatment(y, w, x)
@@ -32,7 +33,7 @@ def estimate_ate(y: np.ndarray, w: np.ndarray, x: np.ndarray, x_policy: np.ndarr
     ate = np.mean(tau)
     # compute optimal policy and its regret
     w_opt = _compute_optimal_policy(tau-true_ate, x, x_policy, **kwargs) # use the true ATE as the cost for implementing the policy
-    regret = _compute_regret(w_opt,x_policy, true_ate)
+    regret = _compute_regret(w_opt,x_policy, true_ate, cate_type)
     return ate, regret
 
 
@@ -118,14 +119,14 @@ def _compute_optimal_policy(pseudo_outcome: np.ndarray, x_test: np.ndarray, x_po
     w_opt = model.predict(x_policy)
     return w_opt
 
-def _compute_regret(w_opt: np.ndarray, x_policy: np.ndarray, true_ate: bool) -> float:
-    y_treated = outcomes_treated(x_policy, true_ate)
+def _compute_regret(w_opt: np.ndarray, x_policy: np.ndarray, true_ate: bool, cate_type: str) -> float:
+    y_treated = outcomes_treated(x_policy, true_ate, cate_type)
     y_not_treated = outcomes_not_treated(x_policy)
     # determine oracle policy (i.e. policy that maximizes the expected outcome)
     w_oracle = y_treated - y_not_treated > true_ate # treat only if individual CATE is larger than true ATE
     # define outcome based on policy
-    y_policy = y_treated*w_opt + y_not_treated*(1-w_opt)
-    y_oracle = y_treated*w_oracle + y_not_treated*(1-w_oracle)
+    y_policy = y_treated*w_opt + y_not_treated*(1-w_opt) - w_opt*true_ate
+    y_oracle = y_treated*w_oracle + y_not_treated*(1-w_oracle) - w_oracle*true_ate
     # compute regret as the average outcome of the oracle policy minus the average outcome of the optimal policy
     regret = np.mean(y_oracle) - np.mean(y_policy)
     return regret
