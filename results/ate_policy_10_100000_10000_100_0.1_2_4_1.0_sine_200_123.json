@@ -1,0 +1,37 @@
+{
+    "stats_ate": {
+        "mean_bias": -0.000933104771741844,
+        "rmse": 0.009613075256011001,
+        "mae": 0.007697898424485627,
+        "std_estimate": 0.009613075256011001
+    },
+    "stats_ate_under": {
+        "mean_bias": 0.008295908351180603,
+        "rmse": 0.01650718506697572,
+        "mae": 0.012480629245987373,
+        "std_estimate": 0.01650718506697572
+    },
+    "stats_ate_under_all": {
+        "mean_bias": -0.04250017402106977,
+        "rmse": 0.01718085484348825,
+        "mae": 0.04250017402106977,
+        "std_estimate": 0.01718085484348825
+    },
+    "stats_regret": {
+        "mean_regret": 0.2396342856090957,
+        "std_regret": 0.005702425744516783,
+        "median_regret": 0.2402613408303641
+    },
+    "stats_regret_under": {
+        "mean_regret": 0.24307296257851693,
+        "std_regret": 0.005672216423903671,
+        "median_regret": 0.24082663066348176
+    },
+    "stats_regret_under_all": {
+        "mean_regret": 0.25044079466439373,
+        "std_regret": 0.00405774438568574,
+        "median_regret": 0.2505087795315235
+    },
+    "mean_proportion_treated": 0.12280099999999998,
+    "std_proportion_treated": 0.0014713221944903845
+}
