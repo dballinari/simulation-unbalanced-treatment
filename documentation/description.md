@@ -19,9 +19,9 @@ In the realm of highly unbalanced classification problems, training machine lear
 
 I'll start with a concise review of the double-debiased estimator, highlighting its core principles. Then, I'll delve into different methods for adjusting unbalanced treatment assignment, with a focus on a new approach based on undersampling. Remarkably, this method preserves the favorable asymptotic properties of the double-debiased approach.
 
-To illustrate the impact of unbalanced treatment assignment, I'll present the findings of a small simulation study. This study will underscore the sensitivity of the double-debiased estimator and showcase how our proposed adjustments can mitigate bias effectively.
+To illustrate the impact of unbalanced treatment assignment, I'll present the findings of a small simulation study. This study will underscore the sensitivity of the double-debiased estimator and showcase how the proposed adjustment can mitigate bias effectively.
 
-Furthermore, I'll extend the simulation to evaluate the performance of these adjustments in real-world decision-making scenarios, particularly when assigning optimal policies.
+Furthermore, I'll extend the simulation to evaluate the performance of these adjustment in a decision-making scenarios where we try to find an optimal policy to assign treatments.
 
 The code for this blog post is available on [GitHub](https://github.com/dballinari/simulation-unbalanced-treatment).
 
@@ -34,15 +34,15 @@ Under these assumptions, we can estimate the ATE using the following formula:
 $$
 \theta = E[Y(1)-Y(0)] = E[\mu_1(X)-\mu_0(X) + \frac{D(Y-\mu_1(X))}{e(X)} - \frac{(1-D)(Y-\mu_0(X))}{1-e(X)}]
 $$
-where $e(X)$ is the probability of being treated (propensity score) and $\mu_{(d)}(X)=E[Y|X, D=d]$. The right-hand side of the equation is called the augmented inverse probability weighting (AIPW) estimator or double-robust estimator. Ideally we would like to estimate the nuisance functions $\mu_1(X)$, $\mu_0(X)$ and $e(X)$ using modern machine learning methods while still have a consistent and asymptotically normally distributed estimator. With two crucial ingredients, this is indeed possible. First, the following conditions need to be satisfied[^fn1]:
+where $e(X)$ is the probability of being treated (propensity score) and $\mu_{(d)}(X)=E[Y|X, D=d]$. The right-hand side of the equation is called the augmented inverse probability weighting (AIPW) estimator or double-robust estimator. Ideally we would like to estimate the nuisance functions $\mu_1(X)$, $\mu_0(X)$ and $e(X)$ using modern machine learning methods while still have a consistent and asymptotically normally distributed estimator. With two crucial ingredients, this is indeed possible. First, the following conditions need to be satisfied[^1]:
 - Overlap: $\eta < e(x) < 1-\eta$ for $\eta>0$ and for all $x \in \mathcal{X}$.
-- Consistency: the machine learning methods are sup-norm consistent:
+- Consistency: the machine learning methods are sup-norm consistent
 $$
 \sup_{x \in \mathcal{X}} |\hat{\mu}_d(x) - \mu_d(x)| \xrightarrow{p} 0 \quad \text{and} \quad \sup_{x \in \mathcal{X}} |\hat{e}(x) - e(x)| \xrightarrow{p} 0
 $$
 - Risk decay: the machine learning methods have a risk decay rate that satisfies
 $$
-E[\hat{\mu}_d(X) - \mu_d(X)]^2 E[\hat{e}(X) - e(X)]^2 = o(n^{-1})
+E\left[\left(\hat{\mu}_d(X) - \mu_d(X)\right)^2\right] E\left[\left(\hat{e}(X) - e(X)\right)^2\right] = o(n^{-1})
 $$
 Second, we estimate the ATE using a so-called cross-fitting approach: we split the data randomly into two folds, $\mathcal{I}_1$ and $\mathcal{I}_2$. We then train the machine learning models on $\mathcal{I}_1$ and use them to compute the following quantity on the other fold $\mathcal{I}_2$:
 $$
@@ -58,22 +58,24 @@ For a good explanation of the proof of why this estimation approach is in fact c
 
 ## Unbalanced treatment assignment
 
-In many real-world applications, the treatment assignment is not balanced. This means that only very few subjects are treated. This problem arises, for example, in medical applications where the treatment assignment might be very expensive. In this case, the machine learning model will have a hard time to correctly estimate the propensity scores $e(X)$. In fact, the more extreme the unbalancedness, the more the model will tend to predict a probability of being treated close to zero for all subjects. This is because the model will try to minimize the loss function, which will be dominated by the non-treated subjects. Since the propensity scores appear in the denominator of the doubly-robust estimator, we will obtain very large values for:
+In many real-world applications, the treatment assignment is not balanced. This means that only very few subjects are treated. This problem arises, for example, in medical applications where the treatment assignment might be very expensive. In this case, the machine learning model will have a hard time to correctly estimate the propensity scores $e(X)$. In fact, the more extreme the unbalancedness, the more the model will tend to predict a probability of being treated close to zero for all subjects. This is because the model will try to minimize the loss function, which will be dominated by the non-treated subjects. Since the propensity scores appear in the denominator of the doubly-robust estimator, we will obtain very large values for the term:
 $$
 \frac{D_i(Y_i-\hat{\mu}_1(X_i))}{\hat{e}(X_i)}.
 $$
 This will lead to a very high variance of the ATE estimator and in finite-samples to a considerable bias.
 
-Luckily, this is a well known issue in machine learning classification problems. A common approach to address this problem is _undersampling_. This means that we will randomly select a subset of the non-treated subjects and use this subset to train the machine learning models and estimate the treatment effect. This will lead to a more balanced dataset. However, undersampling the data results in effectively using less data to estimate $\mu_0(X)$, $e(X)$, and most importantly $\hat\theta$.
+Luckily, this is a well known issue in machine learning classification problems. A common approach to address this issue is _undersampling_. This means that we will randomly select a subset of the non-treated subjects and use this subset to train the machine learning models and estimate the treatment effect. This will lead to a more balanced dataset. However, undersampling the data results in effectively using less data to estimate $\mu_0(X)$, $e(X)$, and most importantly $\theta$.
 
-Here I will explore an alternative approach which only partially undersamples the dataset. This approach is based on the idea that we can undersample only the data used to estimate the machine learning models, while still using all the data to estimate the treatment effect. This requires however an adjustment of the propensity scores. In what follows, I will describe the adjustment proposed by Dal Pozzolo et al. (2015).[^3] While they apply their method to the problem of unbalanced classification, it can be easily adapted to the problem of estimating propensity scores. T
+Here I will explore an alternative approach which only partially undersamples the dataset. This approach is based on the idea that we can undersample only the data used to estimate the machine learning models, while still using all the data to estimate the treatment effect. This requires however an adjustment of the propensity scores. In what follows, I will describe the adjustment proposed by Dal Pozzolo et al. (2015).[^3] While they apply their method to the problem of unbalanced classification, it can be easily adapted to the problem of estimating propensity scores.
 
 To formalize the concept of undersampling, we can define a random variable $S_i$ which equals 1 if the observation is part of the undersampled data and 0 otherwise. It then follows that $P(S_i=1|D_i=1)=1$ since we keep all treated observations. For the non-treated once, we instead have $P(S_i = 1 | D_i=0) = \gamma < 1$. Notice that since the undersampling technique is not dependent on the covariates $X$, we have $P(S_i=1|D_i=d, X_i)=P(S_i=1|D_i=d)$. So how does undersampling affect the propensity score? This can be easily derived using Bayes' rule:
 $$
-e_S(X_i) := P(D_i=1|X_i, S_i=1)\\[0.5cm] = \frac{P(S_i=1|D_i=1, X_i)P(D_i=1|X_i)}{P(S_i=1|D_i=1, X_i)P(D_i=1|X_i) + P(S_i=1|D_i=0, X_i)P(D_i=0|X_i)}\\[0.5cm]
-= \frac{P(S_i=1|D_i=1)P(D_i=1|X_i)}{P(S_i=1|D_i=1)P(D_i=1|X_i) + P(S_i=1|D_i=0)P(D_i=0|X_i)}\\[0.5cm]
-= \frac{P(D_i=1|X_i)}{P(D_i=1|X_i) + \gamma P(D_i=0|X_i)}\\[0.5cm]
-= \frac{e(X_i)}{e(X_i) + \gamma (1-e(X_i))}.
+\begin{aligned}
+e_S(X_i) &:= P(D_i=1|X_i, S_i=1)\\[0.5cm] &= \frac{P(S_i=1|D_i=1, X_i)P(D_i=1|X_i)}{P(S_i=1|D_i=1, X_i)P(D_i=1|X_i) + P(S_i=1|D_i=0, X_i)P(D_i=0|X_i)}\\[0.5cm]
+&= \frac{P(S_i=1|D_i=1)P(D_i=1|X_i)}{P(S_i=1|D_i=1)P(D_i=1|X_i) + P(S_i=1|D_i=0)P(D_i=0|X_i)}\\[0.5cm]
+&= \frac{P(D_i=1|X_i)}{P(D_i=1|X_i) + \gamma P(D_i=0|X_i)}\\[0.5cm]
+&= \frac{e(X_i)}{e(X_i) + \gamma (1-e(X_i))}.
+\end{aligned}
 $$
 
 So when we are using an undersampled dataset to estimate the propensity score, we are in fact not estimating the population propensity score $e(X_i)$, but the propensity score of a balanced dataset $e_S(X_i)$. This is also the reason why we have to estimate the treatment effect on the undersampled dataset: the machine learner will be sup-consistent for the propensity score on the undersampled population.
@@ -110,10 +112,78 @@ Notice that here we can estimated $\gamma$ using the entire dataset, and not a c
 <details>
   <summary>Proof of the asymptotic properties</summary>
   
-  > The proof of the asymptotic properties of the estimator is very similar to the proof > of the asymptotic properties of the doubly-robust estimator as outlined in Stefan Wager's script.[^fn1]
+  > The proof of the asymptotic properties of the UC-DR estimator is very similar to the proof of the classical doubly-robust estimator as outlined in Stefan Wager's script[^1]. In the following I will therefore only cover the differences in the proofs to try to keep this part as short as possible.
     > 
-  > First, notice that estimator of $\gamma$ is simply a maximum likelihood estimator for > which we have that $|\hat\gamma - \gamma| = o_p()$
-
+  > Notice that estimator of $\gamma$ is simply a maximum likelihood estimator for which we have that $|\hat\gamma - \gamma|= o_p(n^{-1/2})$. Moreover, I assume that $\epsilon < \gamma < 1 - \epsilon$ for $\epsilon>0$. 
+  >
+  > I will assume that the previously mentioned conditions hold for the undersampled machine learner:
+  >- Overlap: $\eta < e_S(x) < 1-\eta$ for $\eta>0$ and for all $x \in \mathcal{X}$.
+  >- Consistency:
+  >$$
+    \sup_{x \in \mathcal{X}} |\hat{e}_S(x) - e_S(x)| \xrightarrow{p} 0
+  >$$
+  >- Risk decay:
+  >$$
+    E\left[\left(\hat{\mu}_d(X) - \mu_d(X)\right)^2\right] E\left[\left(\hat{e}_S(x) - e_S(X)\right)^2\right] = o(n^{-1}).
+  >$$
+  > Now by noticing that
+  > $$
+  |\hat{e}_S(x)\hat\gamma - e_S(X)\gamma| = |\hat{e}_S(x)\hat\gamma - e_S(X)\hat\gamma + e_S(X)\hat\gamma - e_S(X)\gamma| \leq |\hat{e}_S(x) - e_S(X)| |\hat\gamma| + |\hat\gamma - \gamma| |e_S(X)| \leq |\hat{e}_S(x) - e_S(X)| + |\hat\gamma - \gamma| 
+  > $$
+  > we can conclude that $\hat{e}_S(x)\hat\gamma$ is sup-norm consistent and therefore, thanks to the overlap assumption, $\hat{e}(X)$ is also sup-norm consistent.
+  >
+  > From here I follow the proof in Wager's script. I will focus on an estimator for $\theta_1=E[Y(1)]$. Extending this proof to the ATE estimator is straight forward since $\theta=\theta_1 - \theta_0$. First, if we would know the true functions $\mu_1(X)$ and $e(X)$, the oracle estimator:
+  >$$
+  \widetilde\theta_1 = \frac{1}{N} \sum_{i=1}^N \left(\mu_1(X_i) + \frac{D_i(Y_i-\mu_1(X_i))}{e(X_i)}\right)
+  >$$
+  >would simply be an average of independent random variables and by the central limit theorem we would have that $\sqrt{N}(\widetilde\theta_1 - \theta_1) \xrightarrow{d} \mathcal{N}(0, V^*)$. Next, if we can show that $\sqrt{N}(\widetilde\theta_1 - \hat\theta_1)=o_p(1)$, we can conclude that our estimator converges to the same distribution as the oracle estimator.
+  >
+  > Since I use cross-fitting for the estimation, I can rewrite the estimator as follows:
+  > $$
+  \hat\theta_1 = \frac{|\mathcal{I}_1|}{N} \hat\theta_1^{\mathcal{I}_1} + \frac{|\mathcal{I}_2|}{N} \hat\theta_1^{\mathcal{I}_2}, \qquad \hat\theta_1^{\mathcal{I}_1} = \frac{1}{|\mathcal{I}_1|} \sum_{i \in \mathcal{I}_1} \left(\hat{\mu}_1^{\mathcal{I}_2^S}(X_i) + \frac{D_i(Y_i-\hat{\mu}^{\mathcal{I}_2^S}_1(X_i))}{\hat{e}^{\mathcal{I}_2^S}(X_i)}\right).
+  > $$
+  > So it is sufficient to show that $\sqrt{N}(\widetilde\theta_1^{\mathcal{I}_1} - \hat\theta_1^{\mathcal{I}_1})=o_p(1)$. Stefan wager shows how we can decompose the difference into three terms:
+  > $$
+  \begin{aligned}
+  \widetilde\theta_1^{\mathcal{I}_1} - \hat\theta_1^{\mathcal{I}_1} &= \frac{1}{|\mathcal{I}_1|} \sum_{i \in \mathcal{I}_1} \left( \left(\hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i)\right) \left(1-\frac{D_i}{e(X_i)}\right) \right)\qquad \text{(A)}\\ 
+  &+ \frac{1}{|\mathcal{I}_1|} \sum_{i \in \mathcal{I}_1} D_i \left( \left( Y_i - \mu_1(X_i) \right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right) \right) \qquad \text{(B)}\\ 
+  &- \frac{1}{|\mathcal{I}_1|} \sum_{i \in \mathcal{I}_1} D_i \left( \left(\hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i)\right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right) \right) \qquad \text{(C)}.
+  \end{aligned}
+  > $$
+  > We therefore have to show that each of these three components converge to zero at rate $N^{-1/2}$. First, (A) does not dependent on the estimation of the propensity score, and we can therefore use the same argument as in Stefan Wager's script, which is why I will skip this part of the proof. Second, I compute the squared $L_2$-norm of (B):
+  > $$
+  \begin{aligned}
+  \left\|\frac{1}{|\mathcal{I}_1|} \sum_{i \in \mathcal{I}_1} D_i \left( \left( Y_i - \mu_1(X_i) \right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right) \right)\right\|_2^2 &= E\left[ \left(\frac{1}{|\mathcal{I}_1|} \sum_{i \in \mathcal{I}_1} D_i  \left( Y_i - \mu_1(X_i) \right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right) \right)^2 \right]\\
+  &= E\left[ E\left[  \left(\frac{1}{|\mathcal{I}_1|} \sum_{i \in \mathcal{I}_1} D_i  \left( Y_i - \mu_1(X_i) \right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right) \right)^2 \Bigg|\mathcal{I}_2^S, D_1, \dots, D_N  \right] \right]\\
+  &= E\left[ Var\left[  \frac{1}{|\mathcal{I}_1|} \sum_{i \in \mathcal{I}_1} D_i  \left( Y_i - \mu_1(X_i) \right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right)  \Bigg|\mathcal{I}_2^S, D_1, \dots, D_N  \right] \right]\\
+  &= \frac{1}{|\mathcal{I}_1|^2} E\left[  \sum_{i \in \mathcal{I}_1} Var\left[   D_i  \left( Y_i - \mu_1(X_i) \right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right)  \Bigg|\mathcal{I}_2^S, D_1, \dots, D_N  \right] \right]\\
+  &= \frac{1}{|\mathcal{I}_1|} E\left[ Var\left[   D_i  \left( Y_i - \mu_1(X_i) \right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right)  \Bigg|\mathcal{I}_2^S, D_1, \dots, D_N  \right] \right]\\
+  &= \frac{1}{|\mathcal{I}_1|} E\left[ D_i  \left( Y_i - \mu_1(X_i) \right)^2 \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right)^2 \right]\\
+  &=\dots= \frac{o(1)}{N}
+  \end{aligned}
+  >$$
+  >I skipped the last steps since, thanks to the sup-consistency of the calibrated propensity score estimator, they coincide with the proof of the double-robust estimator. The main difference to the usual proof is the fact that I had to condition not only on the (undersampled) estimation sample, but also on the treatment assignments of the entire sample $\{D_i\}_{i=1,\dots, N}$. This step is necessary, since the calibrated propensity score depends on $\hat\gamma$ which is estimated over the entire sample. Despite this, the elements in the sum are still uncorrelated (forth equality):
+  >$$
+  Cov\left[D_i  \left( Y_i - \mu_1(X_i) \right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right), D_j  \left( Y_j - \mu_1(X_j) \right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_j)}-\frac{1}{e(X_j)}\right) \Bigg|\mathcal{I}_2^S, D_1, \dots, D_N \right] \\
+  = E\left[ D_i  \left( Y_i - \mu_1(X_i) \right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right) D_j  \left( Y_j - \mu_1(X_j) \right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_j)}-\frac{1}{e(X_j)}\right) \Bigg|\mathcal{I}_2^S, D_1, \dots, D_N \right] \\
+  = E\left[ D_i \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right) D_j   \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_j)}-\frac{1}{e(X_j)}\right) E\left[ \left( Y_i - \mu_1(X_i) \right) \Big|X_i, D_i \right] E\left[ \left( Y_j - \mu_1(X_j) \right) \Big|X_j, D_j \right] \Bigg|\mathcal{I}_2^S, D_1, \dots, D_N \right] = 0
+  >$$
+  > by the law of iterated expectations and the fact that the observations are independent.
+    Lastly, we can focus on the (C):
+  > $$
+  \begin{aligned}
+ E\left[ \left( \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right) \right] & \leq E\left[ \left| \left( \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \right) \left(\frac{1}{\hat{e}^{\mathcal{I}_2^S}(X_i)}-\frac{1}{e(X_i)}\right) \right| \right] \\
+ & = E\left[ \left| \left( \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \right) \left(\frac{1}{\gamma e_S(X_i)} - \frac{1}{\hat\gamma \hat{e}^{\mathcal{I}_2^S}_S(X_i)} -\frac{1}{\gamma}+\frac{1}{\hat\gamma}\right) \right| \right]\\
+ & \leq E\left[ \Bigg| \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \Bigg| \left| \left(\frac{1}{\gamma e_S(X_i)} - \frac{1}{\hat\gamma \hat{e}^{\mathcal{I}_2^S}_S(X_i)}\right) + \left(\frac{1}{\hat\gamma}-\frac{1}{\gamma} \right)\right| \right] \\
+ & \leq E\left[ \Bigg| \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \Bigg| \left|\frac{1}{\gamma e_S(X_i)} - \frac{1}{\hat\gamma \hat{e}^{\mathcal{I}_2^S}_S(X_i)}\right| \right] + E\left[ \Bigg| \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \Bigg| \left|\frac{1}{\hat\gamma}-\frac{1}{\gamma}\right| \right] \\
+ & \leq c_1 E\left[ \left| \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \right| \left| \hat\gamma \hat{e}^{\mathcal{I}_2^S}_S(X_i) - \gamma e_S(X_i)\right| \right] + c_2 E\left[ \left| \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \right| \left|\gamma-\hat\gamma\right| \right] \\
+  & = c_1 E\left[ \left| \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \right| \left| \hat{e}^{\mathcal{I}_2^S}_S(X_i) - e_S(X_i)\right| |\hat\gamma | \right] + c_1 E\left[ \left| \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \right| \left| \hat\gamma - \gamma \right| |e_S(X_i)| \right] + c_2 E\left[ \left| \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \right| \left|\gamma-\hat\gamma\right| \right]\\
+  & \leq c_1 E\left[ \left| \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \right| \left| \hat{e}^{\mathcal{I}_2^S}_S(X_i) - e_S(X_i)\right| \right] + c_1 E\left[ \left| \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \right| \left| \hat\gamma - \gamma \right|\right] + c_2 E\left[ \left| \hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \right| \left|\gamma-\hat\gamma\right| \right] \\
+  & \leq c_1 \|\hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \|_2 \|\hat{e}^{\mathcal{I}_2^S}_S(X_i) - e_S(X_i) \|_2 + (c_1+c_2) \|\hat{\mu}_1^{\mathcal{I}_2^S}(X_i) - \mu_1(X_i) \|_2 \|\hat\gamma -\gamma \|_2\\
+  & = o(N^{-1/2}) + o(N^{-1/2}) = o(N^{-1/2})	
+  \end{aligned}
+  > $$
+  > where the first the first term in the last step is $o(N^{-1/2})$ by the risk-decay assumption and the second term is $o(N^{-1/2})$ by the convergence rate of $\hat\gamma$ and sup-consistency of $\hat\mu_1$. The positive constants $c_1$ and $c_2$ come from the boundedness of $e_S$ and $\gamma$ (and that of their respective estimators). Combined with the law of large numbers, we can conclude that the term (C) is $o_p(N^{-1/2})$. This concludes the proof of the theorem as all three terms (A), (B) and (C) are $o_p(N^{-1/2})$.
 </details>
 
 ## A small simulation study
@@ -146,19 +216,19 @@ $$
 
 ### Results
 
-Before presenting the results, I will briefly explain how I evaluate the different estimators. First, I compute the average bias of the estimator. This measure will give me an idea of how close the estimator is to the true value of the average treatment effect. Second, I compute the root mean squared error (RMSE) of the estimator. This measure, combined with the bias, will tell me how much the estimator varies across different samples. 
+Before presenting the results, I will briefly explain how I evaluate the performance of the UC-DR learner with that of the baseline double-robust estimator (DR) and with its undersampled version (U-DR). First, I compute the average bias of the estimator. This measure will give me an idea of how close the estimator is to the true value of the average treatment effect. Second, I compute the root mean squared error (RMSE) of the estimator. This measure, combined with the bias, will tell me how much the estimator varies across different samples. 
 
 Finally, I use the different estimators in what is commonly called a "policy learning" problem. The idea is that I want to optimally assign the treatment to new observations. This means that, for a group of new individuals, I have to decide who should be treated, taking into account that the treatment has a certain cost. For simplicity, I assume that treating an individual bears a constant const equal to one. If the potential outcomes of each individual would be known, it would be easy to compute the optimal assignment. I would simply assign the treatment to the individuals where the effect of treatment $Y(1)-Y(0)$ exceeds the cost. However, in practice, the potential outcomes are not known. Athey and Wager[^5] (2021) show that it is possible to solve this problem by training a classification model using the $\hat\tau_i$ obtained from a doubly-robust estimator. I skip here all the details of this procedure, but you can find more information either directly in their paper or in Micheal Knaus' slides available in [his GitHub repo](https://github.com/MCKnaus/causalML-teaching). I will report the regret of the different estimators. The regret is defined as the difference between the average outcome of the optimal assignment and the average outcome of the assignment obtained by using the estimated $\hat\tau_i$ for a new random sample of 10'000 individuals. An estimator will perform well in this task if it is able to capture the heterogeneity in the treatment effect.
 
 All the results are summarized in the table below. They show that:
-1. **U-DR and UC-DR Perform Similarly in Small Samples:**
+1. **U-DR and UC-DR perform similarly in small samples:**
 In small sample sizes with highly unbalanced treatment assignment, the U-DR and UC-DR estimators exhibit comparable performance in estimating causal effects. The UC-DR estimator has, however, a larger variance. This can be explained by the fact that an additional parameter has to be estimated ($\hat\gamma$).
 
-2. **UC-DR Excels with Increased Observations and Decreasing Unbalancedness:**
+2. **UC-DR excels with increased observations and decreasing unbalancedness:**
 As the number of observations increases, the UC-DR estimator outperforms the U-DR estimator. Thanks to the adjustment, the UC-DR estimator can use more data to estimate the ATE and to train the policy learning classifier. This leads to a lower bias and a more accurate treatment assignment. However, the additional data used by the UC-DR estimator cannot offset the variance related with the estimation of $\hat\gamma$. In fact, the U-DR estimator still has the lowest RMSE.
 
-3. **Limitations of Baseline DR Estimator in Highly Unbalanced Samples:**
-The baseline DR (doubly robust) estimator, although widely used, faces challenges when the sample is highly unbalanced. In such cases, the propensity score predictions approach zero for some observations, leading to considerable outliers and severely biased causal effect estimates. This can result in misleading conclusions and limit the applicability of the baseline DR estimator in practical situations involving imbalanced datasets. Only for the largest and least unbalanced sample, the baseline DR estimator performs well.
+3. **Limitations of baseline DR estimator in highly unbalanced samples:**
+The baseline DR estimator, although widely used, faces challenges when the sample is highly unbalanced. In such cases, the propensity score predictions approach zero for some observations, leading to considerable outliers and severely biased causal effect estimates. This can result in misleading conclusions and limit the applicability of the baseline DR estimator in practical situations involving imbalanced datasets. Only for the largest and least unbalanced sample, the baseline DR estimator performs well.
 
 
 | Estimator | Double-robust | Undersampled DR | Undersampled-calibrated  DR |
@@ -182,7 +252,7 @@ The baseline DR (doubly robust) estimator, although widely used, faces challenge
 
 ## Conclusion
 
-So which estimator should we use in practice when dealing with unbalanced treatment assignment? As in many cases: it depends. If the sample is small and highly unbalanced, undersampling is a good choice. If the sample is large I would recommend to undersample only the data used to train the machine learning models and then adjust the propensity score predictions. This will allow to use more data to estimate the ATE or to train other models on the $\hat\tau_i$. This could be particularly useful when we want conditional treatment effects or solve a policy learning problem. In any case, the baseline doubly-robust estimator should be avoided in highly unbalanced samples, unless we have a very large sample size.
+So which estimator should we use in practice when dealing with unbalanced treatment assignment? As in many cases: it depends. If the sample is small and highly unbalanced, undersampling is a good choice. If the sample is large I would recommend to undersample only the data used to train the machine learning models and then adjust the propensity score predictions. This will allow to use more data to estimate the ATE or to train other models on the $\hat\tau_i$. This could be particularly useful when we are interested in conditional treatment effects or in solving a policy learning problem. In any case, the baseline doubly-robust estimator should be avoided in highly unbalanced samples, unless we have a very large sample size.
 
 
 
