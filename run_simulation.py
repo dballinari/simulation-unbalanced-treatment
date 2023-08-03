@@ -18,10 +18,11 @@ argparser.add_argument('--alpha', type=float, default=1/4)
 argparser.add_argument('--beta', type=int, default=2)
 argparser.add_argument('--gamma', type=int, default=4)
 argparser.add_argument('--true_ate', type=float, default=1.0)
-argparser.add_argument('--independent_effect', action=argparse.BooleanOptionalAction)
+argparser.add_argument('--cate_type', type=str, default='complex')
 argparser.add_argument('--n_estimators', type=int, default=100)
 argparser.add_argument('--seed', type=int, default=123)
 argparser.add_argument('--n_jobs', type=int, default=None)
+argparser.add_argument('--min_samples_leaf', type=int, default=1)
 args = argparser.parse_args()
 
 
@@ -62,12 +63,12 @@ if __name__=='__main__':
     regrets_under_all = np.zeros(args.num_simulations)
     proportion_treated = np.zeros(args.num_simulations)
     # define export file names
-    file_name = f'{args.num_simulations}_{args.n}_{args.n_policy}_{args.p}_{args.alpha}_{args.beta}_{args.gamma}_{args.true_ate}{"_independentEffect" if args.independent_effect else ""}_{args.n_estimators}_{args.seed}'
+    file_name = f'{args.num_simulations}_{args.n}_{args.n_policy}_{args.p}_{args.alpha}_{args.beta}_{args.gamma}_{args.true_ate}_{args.cate_type}_{args.n_estimators}_{args.seed}'
     # add progress bar
     progress_bar = tqdm(total=args.num_simulations)
     for i in range(args.num_simulations):
         # simulate data
-        x, w, y = sim_outcomes(n=args.n, p=args.p, alpha=args.alpha, beta=args.beta, gamma=args.gamma, true_ate=args.true_ate, independent=args.independent_effect)
+        x, w, y = sim_outcomes(n=args.n, p=args.p, alpha=args.alpha, beta=args.beta, gamma=args.gamma, true_ate=args.true_ate, cate_type=args.cate_type)
         # in the first simulation, plot the propensity scores
         if i == 0:
             ps = propensity_scores(x, args.alpha, args.beta, args.gamma)
@@ -81,11 +82,11 @@ if __name__=='__main__':
         # save proportion of treated
         proportion_treated[i] = np.mean(w)
         # estimate ATE
-        ate, regret = estimate_ate(y, w, x, x_policy, args.true_ate, n_estimators=args.n_estimators, random_state=args.seed, n_jobs=args.n_jobs)
+        ate, regret = estimate_ate(y, w, x, x_policy, args.true_ate, cate_type=args.cate_type, n_estimators=args.n_estimators, random_state=args.seed, n_jobs=args.n_jobs, min_samples_leaf=args.min_samples_leaf)
         # estimate ATE with under sampling only training data
-        ate_under, regret_under = estimate_ate(y, w, x, x_policy, args.true_ate, under_sample_train=True, n_estimators=args.n_estimators, random_state=args.seed, n_jobs=args.n_jobs)
+        ate_under, regret_under = estimate_ate(y, w, x, x_policy, args.true_ate, cate_type=args.cate_type, under_sample_train=True, n_estimators=args.n_estimators, random_state=args.seed, n_jobs=args.n_jobs, min_samples_leaf=args.min_samples_leaf)
         # estimate ATE with under sampling both training and test data
-        ate_under_all, regret_under_all = estimate_ate(y, w, x, x_policy, args.true_ate, under_sample_train=True, under_sample_test=True, n_estimators=args.n_estimators, random_state=args.seed, n_jobs=args.n_jobs)
+        ate_under_all, regret_under_all = estimate_ate(y, w, x, x_policy, args.true_ate, cate_type=args.cate_type, under_sample_train=True, under_sample_test=True, n_estimators=args.n_estimators, random_state=args.seed, n_jobs=args.n_jobs, min_samples_leaf=args.min_samples_leaf)
         # save ate estimates
         estimates_ate[i] = ate
         estimates_ate_under[i] = ate_under
