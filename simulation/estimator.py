@@ -80,7 +80,7 @@ def _estimate_pseudo_outcomes(y: np.ndarray, w: np.ndarray, x: np.ndarray, nfold
                 # correct for under-sampling of the non-treated
                 w_pred = w_pred/((1-w_pred)/ratio_treated - w_pred)
         # compute pseudo-outcomes on test set
-        tau[idx_test] = y_pred_treated-y_pred_not_treated + w_test*(y_test-y_pred_treated)/(w_pred+1e-10) + (1-w_test)*(y_test-y_pred_not_treated)/(1-w_pred+1e-10)
+        tau[idx_test] = y_pred_treated-y_pred_not_treated + w_test*(y_test-y_pred_treated)/(w_pred+1e-10) - (1-w_test)*(y_test-y_pred_not_treated)/(1-w_pred+1e-10)
     return tau
 
 
