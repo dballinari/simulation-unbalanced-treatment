@@ -176,39 +176,34 @@ Before presenting the results, I will briefly explain how I evaluate the perform
 Finally, I use the different estimators in what is commonly called a "policy learning" problem. The idea is that I want to optimally assign the treatment to new observations. This means that, for a group of new individuals, I have to decide who should be treated, taking into account that the treatment has a certain cost. For simplicity, I assume that treating an individual bears a constant const equal to one. If the potential outcomes of each individual would be known, it would be easy to compute the optimal assignment. I would simply assign the treatment to the individuals where the effect of treatment $Y(1)-Y(0)$ exceeds the cost. However, in practice, the potential outcomes are not known. Athey and Wager[^5] (2021) show that it is possible to solve this problem by training a classification model using the $\hat\tau_i$ obtained from a doubly-robust estimator. I skip here all the details of this procedure, but you can find more information either directly in their paper or in Micheal Knaus' slides available in [his GitHub repo](https://github.com/MCKnaus/causalML-teaching). I will report the regret of the different estimators. The regret is defined as the difference between the average outcome of the optimal assignment and the average outcome of the assignment obtained by using the estimated $\hat\tau_i$ for a new random sample of 10'000 individuals. An estimator will perform well in this task if it is able to capture the heterogeneity in the treatment effect.
 
 All the results are summarized in the table below. They show that:
-1. **U-DR and UC-DR perform similarly in small samples:**
-In small sample sizes with highly unbalanced treatment assignment, the U-DR and UC-DR estimators exhibit comparable performance in estimating causal effects. The UC-DR estimator has, however, a larger variance. This can be explained by the fact that an additional parameter has to be estimated ($\hat\gamma$).
+1. **In small samples or when the unbalancedness is high, the UC-DR estimators perform best.** The undersampling approach combined with a calibration of the propensity score allows to deal with the unbalanced sample while still estimating the ATE with all the data. This leads to a lower bias and a lower RMSE.
 
-2. **UC-DR excels with increased observations and decreasing unbalancedness:**
-As the number of observations increases, the UC-DR estimator outperforms the U-DR estimator. Thanks to the adjustment, the UC-DR estimator can use more data to estimate the ATE and to train the policy learning classifier. This leads to a lower bias and a more accurate treatment assignment. However, the additional data used by the UC-DR estimator cannot offset the variance related with the estimation of $\hat\gamma$. In fact, the U-DR estimator still has the lowest RMSE.
-
-3. **Limitations of baseline DR estimator in highly unbalanced samples:**
-The baseline DR estimator, although widely used, faces challenges when the sample is highly unbalanced. In such cases, the propensity score predictions approach zero for some observations, leading to considerable outliers and severely biased causal effect estimates. This can result in misleading conclusions and limit the applicability of the baseline DR estimator in practical situations involving imbalanced datasets. Only for the largest and least unbalanced sample, the baseline DR estimator performs well.
+2. **The DR estimator performs best in large samples.** In this case, the DR estimator has the lowest RMSE. This is because the additional data used by the UC-DR estimator cannot offset the variance related with the estimation of $\hat\gamma$. However, the UC-DR estimator still performs well in this case.
 
     
 |  | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; DR | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; U-DR | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; UC-DR |
 | :----------------- | --------------------------: | --------------------------: | --------------------------: |
 |_2% treated, N = 1'000, 1'000 simulations_ |
-| Bias | 829'573.92  | **0.1321**    | 0.1346 |
-| RMSE    | 25'756'549.85      | **0.5333**      | 0.5978 |
-| Regret    | 0.6229      | **0.5804**      |0.5849 |
+| Bias | -828'926.65  |  0.1514 | **0.1321**    |
+| RMSE    | 25'756'152.40      |  0.4965 | **0.3578**      |
+| Regret    | 0.6252      |  **0.6083** | 0.6511      |
 |_2% treated, N = 10'000, 100 simulations_ |
-| Bias | 607'085.43  | 0.0769      | **0.03963** |
-| RMSE    | 4'114'752.21      | **0.12253**      | 0.15762 |
-| Regret    | 0.4466   | 0.4353   | **0.3865** |
+| Bias | 602'684.19  |  0.0726 | **0.0304**      |
+| RMSE    | 4'132'002.67      |  0.1137 | **0.0834**      |
+| Regret    | 0.5542   |  0.5182 | **0.4361**   |
 |_12% treated, N = 1'000, 1'000 simulations_ |
-| Bias | 61'249.58  | 0.1003   | **0.0533** |
-| RMSE    | 1'272'147.90      | **0.1704**      | 0.2151 |
-| Regret    | 0.4822      | 0.46856      | **0.44722** |
+| Bias | 60'961.23  |  0.0983 | **0.0682**   |
+| RMSE    | 1'265'939.24      |  0.1556 | **0.1232**      |
+| Regret    | 0.5525      |  0.5527 | **0.5524**      |
 |_12% treated, N = 10'000, 100 simulations_ |
-| Bias | **0.0124**  | 0.0613      | 0.0147 |
-| RMSE    | **0.0371**      | 0.0491      | 0.0578 |
-| Regret    | 0.3790      | 0.4039      | **0.3752** |
+| Bias | **0.0111**  |  0.0596 | 0.0131      |
+| RMSE    | **0.0361**      |  0.0489 | 0.0361      |
+| Regret    | **0.3798**      |  0.4234 | 0.3787 |
 
 
 ## Conclusion
 
-So which estimator should we use in practice when dealing with unbalanced treatment assignment? As in many cases: it depends. If the sample is small and highly unbalanced, undersampling is a good choice. If the sample is large I would recommend to undersample only the data used to train the machine learning models and then adjust the propensity score predictions. This will allow to use more data to estimate the ATE or to train other models on the $\hat\tau_i$. This could be particularly useful when we are interested in conditional treatment effects or in solving a policy learning problem. In any case, the baseline doubly-robust estimator should be avoided in highly unbalanced samples, unless we have a very large sample size.
+So which estimator should we use in practice when dealing with unbalanced treatment assignment? As in many cases: it depends. If the sample is not very large and (highly) unbalanced, I would recommend to undersample the data used to train the machine learning models and then adjust the propensity score predictions. This will allow to use more data to estimate the ATE or to train other models on the $\hat\tau_i$. This could be particularly useful when we are interested in conditional treatment effects or in solving a policy learning problem. In any case, the baseline doubly-robust estimator should be avoided in highly unbalanced samples, unless we have a very large sample size.
 
 
 ## *Proof of the asymptotic properties*
